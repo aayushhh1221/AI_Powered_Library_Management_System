@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException,Response,APIRouter
+from fastapi import FastAPI, Depends, HTTPException,Response,APIRouter,Request
 from sqlalchemy.orm import Session
 from App.schemas import BookCreate
 from App.database import engine, get_db
@@ -7,11 +7,13 @@ from App.security import get_current_user,oauth2_scheme,admin_required
 from typing import Optional
 from sqlalchemy import desc
 from App.services.open_library_books import import_books
+from App.core.limiter import limiter
 
 router=APIRouter(prefix="/books",tags=["Books"])
 
 @router.post("/create")
-def create_book(book:BookCreate,db:Session=Depends(get_db),current_user: User = Depends(admin_required)):
+@limiter.limit("3/minute")
+def create_book(request: Request,book:BookCreate,db:Session=Depends(get_db),current_user: User = Depends(admin_required)):
     new_book=Book(
     title=book.title,
     author=book.author,
@@ -25,7 +27,8 @@ def create_book(book:BookCreate,db:Session=Depends(get_db),current_user: User = 
     return new_book
 
 @router.get("")
-def get_books(
+@limiter.limit("10/minute")
+def get_books(request: Request,
     skip: int = 0,
     limit: int = 10,
     search:Optional[str]="",
@@ -96,7 +99,8 @@ def get_book(id:int,db:Session=Depends(get_db) ,current_user: User = Depends(get
 
 
 @router.put("/{id}")
-def update_book(id:int,updated_book:BookCreate,db:Session=Depends(get_db),current_user: User = Depends(admin_required)):
+@limiter.limit("5/minute")
+def update_book(request:Request,id:int,updated_book:BookCreate,db:Session=Depends(get_db),current_user: User = Depends(admin_required)):
     book=db.query(Book).filter(Book.id==id).first()
     if book is None:
         raise HTTPException(status_code=404,detail="Book not Found")
@@ -119,7 +123,8 @@ def delete_book(id:int,db:Session=Depends(get_db),current_user: User = Depends(a
 
 
 @router.post("/import")
-def import_book_api(
+@limiter.limit("5/minute")
+def import_book_api(request:Request,
     q: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(admin_required)

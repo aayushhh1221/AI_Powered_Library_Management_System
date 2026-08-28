@@ -26,3 +26,7 @@ class RoadmapRequest(BaseModel):
 
 class Intent(BaseModel):
     intent:str
+
+class RAGRequest(BaseModel):
+    book_id: str
+    question: str

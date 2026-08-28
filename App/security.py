@@ -6,7 +6,7 @@ from fastapi import Depends,HTTPException
 from sqlalchemy.orm import Session
 from App.models import User
 from App.database import get_db
-
+from App.config.settings import settings
 #password hashing
 
 password_hash = PasswordHash.recommended()
@@ -19,8 +19,7 @@ def verify_password(password: str, hashed_password: str):
 
 #jwt token
 
-SECRET_KEY="0e48365e7c9f3cd485943a9e84377b88efca7d527dfdea376d25d174e1e8dde1"
-ALGORITHM="HS256"
+
 
 def create_access_token(data: dict):
     to_encode = data.copy()
@@ -30,7 +29,7 @@ def create_access_token(data: dict):
     to_encode.update({"exp": expire})
     
    
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
 oauth2_scheme = OAuth2PasswordBearer(
@@ -45,8 +44,8 @@ def get_current_user(
     try:
         payload = jwt.decode(
             token,
-            SECRET_KEY,
-            algorithms=[ALGORITHM]
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM]
         )
 
         email = payload.get("sub")
